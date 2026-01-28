@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mudra Jewelry Calculator</title>
+
+<!-- jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+:root {
+    --bg: #0e1e40;
+    --card: rgba(255,255,255,0.08);
+    --gold: #d4af37;
+    --text: #ffffff;
+}
+
+* {
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+}
+
+/* 🔥 WATERMARK */
+.watermark {
+    position: fixed;
+    inset: 0;
+    background-image: url("logo.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 280px;
+    opacity: 0.05;        /* adjust 0.04 – 0.08 */
+    pointer-events: none;
+    z-index: 0;
+}
+
+.container {
+    position: relative;
+    z-index: 1;
+    max-width: 520px;
+    margin: auto;
+    padding: 20px;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.header img {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    border: 2px solid var(--gold);
+}
+
+.header h1 {
+    margin: 10px 0 4px;
+    font-size: 24px;
+}
+
+.header p {
+    color: var(--gold);
+    margin: 0;
+}
+
+.card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 18px;
+}
+
+.card.border {
+    border: 1px solid rgba(212,175,55,0.6);
+}
+
+label {
+    display: block;
+    color: var(--gold);
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    outline: none;
+    margin-bottom: 10px;
+}
+
+.row {
+    display: flex;
+    gap: 10px;
+}
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+}
+
+.total-row span:last-child {
+    color: var(--gold);
+}
+
+button {
+    padding: 12px 14px;
+    background: var(--gold);
+    border: none;
+    border-radius: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #000;
+}
+
+button.full {
+    width: 100%;
+    font-size: 16px;
+}
+
+button.small {
+    font-size: 12px;
+    padding: 6px 10px;
+}
+
+button:disabled {
+    background: gray;
+}
+
+.history {
+    margin-top: 30px;
+}
+
+.history h2 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.history-actions button {
+    margin-left: 6px;
+}
+
+.history-card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 12px;
+}
+
+.history-card .amount {
+    color: var(--gold);
+    font-size: 18px;
+    font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<div class="watermark"></div>
+
+<div class="container">
+
+    <div class="header">
+        <img src="logo.png" alt="Logo">
+        <h1>Mudra Jewelry</h1>
+        <p>Gold & Diamond Calculator</p>
+    </div>
+
+    <div class="card">
+        <label>Product Name</label>
+        <input id="productName" placeholder="Enter product name">
+    </div>
+
+    <div class="card">
+        <label>Gold</label>
+        <div class="row">
+            <input id="goldWeight" type="number" placeholder="Weight (g)">
+            <input id="goldPrice" type="number" placeholder="Price / g">
+        </div>
+        <div class="total-row">
+            <span>Total</span>
+            <span id="goldTotal">0.00</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <label>Center Stone</label>
+        <div class="row">
+            <input id="centerCarat" type="number" placeholder="Carat">
+            <input id="centerPrice" type="number" placeholder="Price / Carat">
+        </div>
+        <div class="total-row">
+            <span>Total</span>
+            <span id="centerTotal">0.00</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <label>Small Diamonds</label>
+        <div class="row">
+            <input id="smallCarat" type="number" placeholder="Carat">
+            <input id="smallPrice" type="number" placeholder="Price / Carat">
+        </div>
+        <div class="total-row">
+            <span>Total</span>
+            <span id="smallTotal">0.00</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <label>Return / Exchange (%)</label>
+        <input id="returnPercent" type="number" placeholder="0 – 100">
+    </div>
+
+    <div class="card border">
+        <div class="total-row">
+            <span>Gross Total</span>
+            <span id="grossTotal">0.00</span>
+        </div>
+        <div class="total-row">
+            <span>Return / Exchange</span>
+            <span id="returnAmount">0.00</span>
+        </div>
+        <hr>
+        <div class="total-row">
+            <span>Grand Total</span>
+            <span id="grandTotal">0.00</span>
+        </div>
+    </div>
+
+    <button id="saveBtn" class="full" disabled>Save Calculation</button>
+
+    <div class="history">
+        <h2>
+            History
+            <div class="history-actions">
+                <button class="small" onclick="exportPDF()">PDF</button>
+                <button class="small" onclick="exportExcel()">Excel</button>
+                <button class="small" onclick="clearHistory()">Clear</button>
+            </div>
+        </h2>
+        <div id="historyList"></div>
+    </div>
+
+</div>
+
+<script>
+const inputs = document.querySelectorAll("input");
+inputs.forEach(i => i.addEventListener("input", calculate));
+
+function val(id) {
+    return parseFloat(document.getElementById(id).value) || 0;
+}
+
+function calculate() {
+    const goldTotal = val("goldWeight") * val("goldPrice");
+    const centerTotal = val("centerCarat") * val("centerPrice");
+    const smallTotal = val("smallCarat") * val("smallPrice");
+
+    const gross = goldTotal + centerTotal + smallTotal;
+    const percent = Math.min(Math.max(val("returnPercent"), 0), 100);
+    const returnAmt = gross * percent / 100;
+    const grand = gross - returnAmt;
+
+    goldTotalEl.textContent = goldTotal.toFixed(2);
+    centerTotalEl.textContent = centerTotal.toFixed(2);
+    smallTotalEl.textContent = smallTotal.toFixed(2);
+    grossTotalEl.textContent = gross.toFixed(2);
+    returnAmountEl.textContent = (-returnAmt).toFixed(2);
+    grandTotalEl.textContent = grand.toFixed(2);
+
+    saveBtn.disabled = productName.value.trim() === "" || gross <= 0;
+}
+
+const goldTotalEl = document.getElementById("goldTotal");
+const centerTotalEl = document.getElementById("centerTotal");
+const smallTotalEl = document.getElementById("smallTotal");
+const grossTotalEl = document.getElementById("grossTotal");
+const returnAmountEl = document.getElementById("returnAmount");
+const grandTotalEl = document.getElementById("grandTotal");
+const saveBtn = document.getElementById("saveBtn");
+const productName = document.getElementById("productName");
+
+saveBtn.addEventListener("click", saveCalculation);
+
+function saveCalculation() {
+    const history = JSON.parse(localStorage.getItem("history") || "[]");
+
+    history.unshift({
+        product: productName.value,
+        goldWeight: val("goldWeight"),
+        grandTotal: grandTotalEl.textContent,
+        date: new Date().toLocaleString()
+    });
+
+    localStorage.setItem("history", JSON.stringify(history));
+    renderHistory();
+}
+
+function renderHistory() {
+    const list = document.getElementById("historyList");
+    list.innerHTML = "";
+
+    const history = JSON.parse(localStorage.getItem("history") || "[]");
+
+    history.forEach(h => {
+        list.innerHTML += `
+            <div class="history-card">
+                <strong>${h.product}</strong><br>
+                Gold: ${h.goldWeight} g
+                <div class="amount">₹ ${h.grandTotal}</div>
+                <small>${h.date}</small>
+            </div>
+        `;
+    });
+}
+
+function clearHistory() {
+    localStorage.removeItem("history");
+    renderHistory();
+}
+
+function exportPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    const history = JSON.parse(localStorage.getItem("history") || "[]");
+
+    doc.setFontSize(16);
+    doc.text("Mudra Jewelry - History", 14, 16);
+
+    let y = 28;
+    doc.setFontSize(10);
+
+    history.forEach((h, i) => {
+        doc.text(`${i + 1}. ${h.product}`, 14, y);
+        y += 6;
+        doc.text(`Gold: ${h.goldWeight} g`, 16, y);
+        y += 6;
+        doc.text(`Final Amount: ₹ ${h.grandTotal}`, 16, y);
+        y += 6;
+        doc.text(`Date: ${h.date}`, 16, y);
+        y += 10;
+        if (y > 270) { doc.addPage(); y = 20; }
+    });
+
+    doc.save("Mudra_Jewelry_History.pdf");
+}
+
+function exportExcel() {
+    const history = JSON.parse(localStorage.getItem("history") || "[]");
+
+    const sheet = XLSX.utils.json_to_sheet(history);
+    const book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(book, sheet, "History");
+
+    XLSX.writeFile(book, "Mudra_Jewelry_History.xlsx");
+}
+
+renderHistory();
+</script>
+
+</body>
+</html>
